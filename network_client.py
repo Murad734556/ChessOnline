@@ -5,9 +5,15 @@ import pygame, sys
 from pygame.locals import *
 from game.board import Board, black
 
-
 class Client:
     def __init__(self, name, serv_ip, port=65432):
+        """
+        Инициализация клиента. Создает окно игры, устанавливает соединение с сервером.
+        
+        :param name: имя игрока
+        :param serv_ip: IP адрес сервера
+        :param port: порт сервера
+        """
         self.size = self.width, self.height = 600, 800
         self.board_size = 600, 600
         self.field_board_size = 5
@@ -18,7 +24,7 @@ class Client:
         self.name = name
         self.enemy_name = None
         self.game = False
-        self.is_white = False
+        self.is_white = True
 
         try:
             self.connfd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -33,7 +39,10 @@ class Client:
         self.main_loop()
 
     def main_loop(self):
-        # game window
+        """
+        Основной цикл игры. Обрабатывает сообщения от сервера и взаимодействие с пользователем.
+        """
+        # Инициализация Pygame
         pygame.init()
 
         board = Board(self.screen, self.board_size, self.field_board_size)
@@ -97,7 +106,6 @@ class Client:
                     board.draw_pieces()
                     self._print_info("Updating board..")
                     self._print_status()
-                    pass
                 elif flag == 'im':
                     board.draw_board_background()
                     board.draw_pieces()
@@ -105,9 +113,9 @@ class Client:
                     self._print_status()
                 elif flag == 'go':
                     if data:
-                        self._print_info("CHECKMATE! \n Вы победили!")
+                        self._print_info("Вы победили!")
                     else:
-                        self._print_info("CHECKMATE! \n Вы проиграли..")
+                        self._print_info("Вы проиграли..")
 
             events = pygame.event.get()
             for event in events:
@@ -117,6 +125,11 @@ class Client:
         self.connfd.close()
 
     def _print_info(self, text):
+        """
+        Отображает информационное сообщение на экране.
+        
+        :param text: текст сообщения
+        """
         myfont = pygame.font.SysFont("monospace", 15)
         label_text = text
         label = myfont.render(label_text, 1, (255, 255, 255))
@@ -124,12 +137,47 @@ class Client:
             center=(self.width / 2, self.board_size[1] + (self.height - self.board_size[1]) / 2))
         self.screen.blit(label, label_rect)
 
+    # def _print_info(self, move):
+    #     """
+    #     Отображает информацию о ходах фигур на экране в алгебраической нотации.
+        
+    #     :param move: ход фигур в формате (start_square, end_square)
+    #     """
+    #     if move:
+    #         start_square = (int(move[0]), int(move[1]))
+    #         end_square = (int(move[2]), int(move[3]))
+    #         notation = self._convert_to_algebraic_notation(start_square) + ": " + self._convert_to_algebraic_notation(end_square)
+    #         myfont = pygame.font.SysFont("monospace", 15)
+    #         label_text = "Move: " + notation
+    #     else:
+    #         label_text = "Waiting for opponent's move..."
+    #     label = myfont.render(label_text, 1, (255, 255, 255))
+    #     label_rect = label.get_rect(
+    #         center=(self.width / 2, self.board_size[1] + (self.height - self.board_size[1]) / 2))
+    #     self.screen.blit(label, label_rect)
+
+    # def _convert_to_algebraic_notation(self, square):
+    #     """
+    #     Конвертирует координаты доски в алгебраическую нотацию.
+        
+    #     :param square: координаты доски в формате (row, column)
+    #     :return: строка с алгебраической нотацией
+    #     """
+    #     column_letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+    #     row_number = 8 - square[0]
+    #     column_letter = column_letters[square[1]]
+    #     return column_letter + str(row_number)
+
+
     def _print_status(self):
+        """
+        Отображает статус игры (имена игроков и их цвет) на экране.
+        """
         myfont = pygame.font.SysFont("monospace", 15)
         if self.is_white:
-            label_text = "[WHITE] PLAYER vs " + self.enemy_name + " [BLACK]"
+            label_text = "(You) [WHITE]   " + self.name + "   vs    " + self.enemy_name + "   [BLACK]"
         else:
-            label_text = "[BLACK] PLAYER vs " + self.enemy_name + " [WHITE]"
+            label_text = "(You) [BLACK]   " + self.name + "    vs    " + self.enemy_name + "   [WHITE]"
 
         label = myfont.render(label_text, 1, (255, 255, 255))
         label_rect = label.get_rect(

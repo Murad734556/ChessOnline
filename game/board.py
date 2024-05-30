@@ -1,6 +1,8 @@
-import pygame, os
-from .chess_logic import check_possible_moves, is_checkmate
+import pygame
+import os
+from chess_logic import check_possible_moves, is_checkmate
 
+# Определение цветов
 black = 0, 0, 0
 white = 255, 255, 255
 floralwhite = 255, 250, 240
@@ -8,8 +10,8 @@ grey = 192, 192, 192
 ivory = 255, 255, 15
 limegreen = 50, 205, 50
 
-
 class Board:
+    # Переменные класса, используемые для управления состоянием доски
     is_field_selected = False
     is_started = False
     field_selected = 0, 0
@@ -17,6 +19,13 @@ class Board:
     checkmate = False
 
     def __init__(self, screen, board_size, field_board_size):
+        """
+        Инициализация объекта доски. Загружает изображения фигур, устанавливает параметры доски.
+
+        :param screen: экран Pygame
+        :param board_size: размер доски
+        :param field_board_size: размер поля доски
+        """
         self.screen = screen
         self.board_size = board_size
         self.field_board_size = field_board_size
@@ -25,6 +34,8 @@ class Board:
         self.field_size = self.board_width / 8, self.board_height / 8
         self.field_without_board_size = [(self.board_width - field_board_size * 8) / 8,
                                          (self.board_height - field_board_size * 8) / 8]
+        
+        # Загрузка изображений фигур
         self.black_queen = pygame.image.load(os.path.join("game", "resources", "black_queen.png"))
         self.white_queen = pygame.image.load(os.path.join("game", "resources", "white_queen.png"))
         self.black_pawn = pygame.image.load(os.path.join("game", "resources", "black_pawn.png"))
@@ -42,17 +53,18 @@ class Board:
 
     def default_board(self):
         """
-        10 9 8 11 12 8 9 10
-        7 7 7 7 7 7 7 7
-        ..
-        1 1 1 1 1 1 1 1
-        4 3 2 5 6 2 3 4
+        Создание стартовой позиции шахматной доски.
+
+        :return: начальная позиция доски
         """
         board = [[0 for i in range(8)] for i in range(8)]
+        
+        # Расстановка пешек
         for a in range(8):
-            board[a][1] = 1
-            board[a][6] = 7
+            board[a][1] = 1  # черные пешки
+            board[a][6] = 7  # белые пешки
 
+        # Расстановка остальных фигур
         board[0][0] = 4
         board[7][0] = 4
         board[1][0] = 3
@@ -74,6 +86,12 @@ class Board:
         return board
 
     def draw_field(self, pos, color):
+        """
+        Рисует одно поле на доске заданного цвета.
+
+        :param pos: позиция поля (x, y)
+        :param color: цвет поля
+        """
         pygame.draw.rect(self.screen, color,
                          pygame.Rect((self.field_board_size * pos[0]) + (pos[0] * self.field_without_board_size[0]),
                                      (self.field_board_size * pos[1]) + (pos[1] * self.field_without_board_size[1]),
@@ -81,21 +99,7 @@ class Board:
 
     def draw_pieces(self):
         """
-        Empty -> 0
-
-        Black Pawn -> 1
-        Black Bishop -> 2
-        Black Knight -> 3
-        Black Rook -> 4
-        Black Queen -> 5
-        Black King -> 6
-
-        White Pawn -> 7
-        White Bishop -> 8
-        White Knight -> 9
-        White Rook -> 10
-        White Queen -> 11
-        White King -> 12
+        Рисует все шахматные фигуры на доске в соответствии с текущим состоянием доски.
         """
         for i in range(8):
             for j in range(8):
@@ -131,6 +135,9 @@ class Board:
                     self.screen.blit(self.white_king, piece_pos)
 
     def draw_board_background(self):
+        """
+        Рисует фон шахматной доски (черно-белые клетки).
+        """
         self.screen.fill(black)
         for i in range(8):
             for j in range(8):
@@ -141,6 +148,12 @@ class Board:
                 self.draw_field((i, j), field_color)
 
     def handle_mouse_click(self, pos):
+        """
+        Обрабатывает нажатие мыши на доске. Управляет выделением поля и возможными ходами.
+
+        :param pos: позиция курсора мыши
+        :return: если ход был совершен, возвращает старое и новое положение фигуры, иначе False
+        """
         field = int(pos[0] / self.field_size[0]), int(pos[1] / self.field_size[1])
         if not self.is_field_selected:
             self.field_selected = field
@@ -152,9 +165,20 @@ class Board:
             self.draw_pieces()
         else:
             if field in self.possible_moves:
+                if abs(self.field_selected[0] - field[0]) == 2 and self.board[self.field_selected[0]][self.field_selected[1]] in [6, 12]:
+                    # Рокировка
+                    if field[0] == 2:
+                        self.board[field[0] + 1][field[1]] = self.board[0][field[1]]
+                        self.board[0][field[1]] = 0
+                    elif field[0] == 6:
+                        self.board[field[0] - 1][field[1]] = self.board[7][field[1]]
+                        self.board[7][field[1]] = 0
+                # Обновляем доску после движения
+                self.board[field[0]][field[1]] = self.board[self.field_selected[0]][self.field_selected[1]]
+                self.board[self.field_selected[0]][self.field_selected[1]] = 0
                 checkmate = is_checkmate(self.board, self.board[field[0]][field[1]] > 6)
                 if checkmate:
-                    print("CHECKMATE!")
+                    print("Шах и Мат!")
             self.draw_board_background()
             self.draw_pieces()
             self.possible_moves = []
@@ -164,4 +188,9 @@ class Board:
         return False
 
     def set_board(self, board):
+        """
+        Устанавливает текущее состояние доски.
+
+        :param board: новое состояние доски
+        """
         self.board = board

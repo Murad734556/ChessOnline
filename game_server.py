@@ -9,28 +9,20 @@ from game.board_server import Board
 
 def handle_game(player_one, player_one_connfd: socket.socket, player_two, player_two_connfd: socket.socket):
     """
-    основная функция, которая занимается конкретной игрой, запускается как частный поток и принимает данные от игроков или
-    декскрипторы их гнезд в качестве аргументов
+    Основная функция, которая управляет игрой между двумя игроками.
+    Запускается в отдельном потоке и принимает данные игроков и их сокеты как аргументы.
 
-    сделать комуникование, если у вас есть клиенты, которые используют флаг и начальные функции, которые делают есвятланию флаги + даныч
-    вы можете отправлять любые типы данных, которые можно записать в функцию Pickle.dumps().
+    Использует encode_flag_data для кодирования данных перед отправкой и decode_flag_data для декодирования полученных данных.
 
-    для преобразования флагов + сообщений/данных в байты, которые можно отправить, можно использовать функцию confd.sendall()
-    функция encode_flag_data('flag', data), она возвращает сообщение в байтовой форме, готовое к отправке
-
-    чтобы отключить процесс, вы можете использовать функцию decode_flag_data(msg), которая использует сообщение в качестве аргумента
-    удаляется с помощью connfd.recv() и возвращает данные в виде кроток (флаг, данные)
-
-    :param player_one:
-    :param player_one_connfd:
-    :param player_two:
-    :param player_two_connfd:
-    :return:
+    :param player_one: имя первого игрока
+    :param player_one_connfd: сокет первого игрока
+    :param player_two: имя второго игрока
+    :param player_two_connfd: сокет второго игрока
     """
-    game_board = Board()
+    game_board = Board()  # Создание игровой доски
     try:
         game = True
-        # отправка обоим игрокам информации о том, что игра начинается (это позволит им выйти из бесконечного цикла
+        # Отправка обоим игрокам сообщения о начале игры
         try:
             player_one_connfd.sendall(encode_flag_data('gs', ''))
             player_two_connfd.sendall(encode_flag_data('gs', ''))
@@ -40,15 +32,14 @@ def handle_game(player_one, player_one_connfd: socket.socket, player_two, player
             return
         time.sleep(1)
 
-        # ustawienie aktywnego gracza oraz deksryptora jego gniazda
-        # DONE: można dodać losowanie kto zaczyna
+        # Случайный выбор активного игрока
         if random.choice([player_one, player_two]) == player_one:
             active_player = player_one
             active_player_connfd = player_one_connfd
             black_player_connfd = player_two_connfd
             white_player_connfd = active_player_connfd
             try:
-                white_player_connfd.sendall(encode_flag_data('sp', [True,  player_two]))
+                white_player_connfd.sendall(encode_flag_data('sp', [True, player_two]))
                 black_player_connfd.sendall(encode_flag_data('sp', [False, player_one]))
             except OSError:
                 player_one_connfd.close()
@@ -60,7 +51,7 @@ def handle_game(player_one, player_one_connfd: socket.socket, player_two, player
             black_player_connfd = player_one_connfd
             white_player_connfd = active_player_connfd
             try:
-                white_player_connfd.sendall(encode_flag_data('sp', [True,  player_one]))
+                white_player_connfd.sendall(encode_flag_data('sp', [True, player_one]))
                 black_player_connfd.sendall(encode_flag_data('sp', [False, player_two]))
             except OSError:
                 player_one_connfd.close()
@@ -72,11 +63,7 @@ def handle_game(player_one, player_one_connfd: socket.socket, player_two, player
         time.sleep(1)
 
         while game:
-            """
-            как показано ниже, лучше всего реализовать отправку сообщений игрокам и получение сообщений от активных игроков.
-            игрок, в этом случае информация об активном игроке отправляется (флаг 'ap' - активный игрок) после
-            после чего активный игрок ждет хода
-            """
+            # Проверка на мат и отправка соответствующего сообщения игрокам
             if is_checkmate:
                 if white_won:
                     try:
@@ -109,13 +96,8 @@ def handle_game(player_one, player_one_connfd: socket.socket, player_two, player
             flag, data = decode_flag_data(msg)
             print(flag, data)
 
-            """
-            tutaj powinna być logika gry (sprwadzanie ruchów, wysyłanie stanu planszy do graczy, wysyłanie
-            informacji o stanie gry
-            """
-
             if flag == 'mv':
-
+                # Проверка корректности хода и обновление доски
                 is_move_correct = game_board.move_piece(data[0], data[1], active_player_connfd == white_player_connfd)
 
                 if is_move_correct:
@@ -136,7 +118,7 @@ def handle_game(player_one, player_one_connfd: socket.socket, player_two, player
                     time.sleep(1)
                 else:
                     try:
-                        active_player_connfd.sendall(encode_flag_data('im', "move not possible!"))
+                        active_player_connfd.sendall(encode_flag_data('im', "Невозможный ход!"))
                     except OSError:
                         player_one_connfd.close()
                         player_two_connfd.close()
@@ -144,7 +126,7 @@ def handle_game(player_one, player_one_connfd: socket.socket, player_two, player
                     time.sleep(1)
                     continue
 
-            # zmiana aktywnego gracza, te dwie linijki powinny zostać na końcu tej pętli
+            # Смена активного игрока
             active_player = player_one if active_player == player_two else player_two
             active_player_connfd = player_one_connfd if active_player_connfd == player_two_connfd else player_two_connfd
     except BrokenPipeError as e:
@@ -157,8 +139,8 @@ def handle_game(player_one, player_one_connfd: socket.socket, player_two, player
 
 
 class Server:
-    def __init__(self, ip='', port=65432):
-        self.clients_connected = {}
+    def __init__(self, ip='', port=12395):
+        self.clients_connected = {}  # Словарь подключенных клиентов
         self.ip = ip
         self.port = port
         self.keep_track = True
@@ -176,6 +158,12 @@ class Server:
         self.main_loop()
 
     def check_client_connection(self, connfd: socket.socket, client_data):
+        """
+        Проверяет подключение клиента. Если клиент отключается, удаляет его из списка подключенных клиентов.
+        
+        :param connfd: сокет клиента
+        :param client_data: данные клиента (имя, IP, порт)
+        """
         connfd.settimeout(0.1)
         while self.keep_track:
             try:
@@ -186,15 +174,18 @@ class Server:
                         self.clients_connected.pop(client_data)
                     connfd.close()
                 break
-            except socket.timeout as e:
+            except socket.timeout:
                 pass
-            except socket.error as e:
+            except socket.error:
                 print("Error has occurred!")
                 return
 
         connfd.settimeout(100000)
 
     def main_loop(self):
+        """
+        Основной цикл сервера, который принимает подключения клиентов и запускает игру, когда два клиента подключены.
+        """
         while True:
             while len(self.clients_connected) < 2:
                 connfd, cli_addr = self.listenfd.accept()
@@ -205,7 +196,7 @@ class Server:
                 client_data = (name, cli_addr[0], cli_addr[1])
 
                 if len(self.clients_connected) == 0:
-                    connfd.sendall(encode_flag_data('ms', 'Waiting for other player...'))
+                    connfd.sendall(encode_flag_data('ms', 'В ожидании другого игрока...'))
 
                 print(f'{client_data} connected.')
 
@@ -230,11 +221,11 @@ class Server:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print('Arguments: [server_ip_address], [server_port](default 65432)')
+        print('Arguments: [server_ip_address], [server_port](default 12395)')
     elif len(sys.argv) == 2:
         Server(sys.argv[1])
     else:
         try:
             Server(sys.argv[1], int(sys.argv[2]))
         except ValueError:
-            print("Invalid port number!")
+            print("Неправильный номер порта!")

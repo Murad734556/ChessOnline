@@ -1,26 +1,33 @@
 # chessOnline
-Chess online game made with Python. Client-Server communication is realized with sockets (IPv4-TCP, flag+data format messages). "Offline" game made with pygame, chess logic is checked and server on server side, so no client manipulation (bad move etc.) is possible.
+Шахматная игра, созданная на Python с помощью pygame
 
-# Example
-![game 1](game1.PNG?raw=true "Example")
-![game 2](game2.PNG?raw=true "Example")
-![game 3](game3.PNG?raw=true "Example")
 ## Technologies
-- PyGame - client-side game
-- socket - client-server communication
-- select - check if any data to receive in client-server socket
-- threading - used in server process, to simultaneous service of many clients
+- PyGame - клиентская часть игры
+- socket - клиент-серверная связь
+
+## Tests
+Тесты запускаются командой *python -m unittest*
+
+Для запуска тестов в папке game надо перейти в папку game командой 
+*cd game* и запустить тесты.
+
 
 ## Getting Started
-Run chess server with: 
+Запустите игру в терминале с командой:  
 
 *python game_server.py* [ip] [port]
 
+ Далее в двух отдельных  терминалах запустите:
+*python game_client.py*
+ 
+ Появится окно. Введите свои данные: name, ip, port
+
+ Далее начнется игра.
+
+ Удачной игры!
 ## Requirements:
-* requiremetns.txt
+*requiremetns.txt*
 
 ## Author
-* **Dominik Baran** - [MasterGTFX](https://github.com/MasterGTFX)
+Адылов Мурад ФТ-102
 
-## License
-This project is free to use or modify.
